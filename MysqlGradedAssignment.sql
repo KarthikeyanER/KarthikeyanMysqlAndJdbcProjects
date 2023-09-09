@@ -1,4 +1,3 @@
-create database MysqlGradedProject;
 create database EcommerceProject;
 use EcommerceProject;
 create table supplier(
@@ -207,4 +206,48 @@ supplier_pricing s,orders o,customer c
  
  select * from supplier s , supplier_pricing sp where s.supp_id=sp.supp_id and 
  (select count(supp_id) from supplier_pricing group by supp_id)>1;
- 
+
+
+CREATE VIEW lowest_expensive_product AS
+SELECT c.CAT_ID, c.CAT_NAME, p.PRO_NAME, MIN(sp.SUPP_PRICE) AS Price
+FROM category c
+JOIN product p ON c.CAT_ID = p.CAT_ID
+LEFT JOIN supplier_pricing sp ON p.PRO_ID = sp.PRO_ID
+GROUP BY c.CAT_ID, c.CAT_NAME, p.PRO_NAME;
+
+SELECT * FROM lowest_expensive_product;
+
+SELECT p.PRO_ID, p.PRO_NAME
+FROM product p
+JOIN supplier_pricing sp ON p.PRO_ID = sp.PRO_ID
+JOIN `orders` o ON sp.PRICING_ID = o.PRICING_ID
+WHERE o.ORD_DATE > '2021-10-05';
+
+SELECT CUS_NAME, CUS_GENDER
+FROM customer
+WHERE CUS_NAME LIKE 'A%' OR CUS_NAME LIKE '%A';
+
+DELIMITER //
+
+CREATE PROCEDURE SupplierRatingAndService()
+BEGIN
+    SELECT 
+        s.SUPP_ID, 
+        s.SUPP_NAME,
+        CASE
+            WHEN AVG(r.RAT_RATSTARS) = 5 THEN 'Excellent Service'
+            WHEN AVG(r.RAT_RATSTARS) > 4 THEN 'Good Service'
+            WHEN AVG(r.RAT_RATSTARS) > 2 THEN 'Average Service'
+            ELSE 'Poor Service'
+        END AS Type_of_Service,
+        AVG(r.RAT_RATSTARS) AS Rating
+    FROM supplier s
+    LEFT JOIN supplier_pricing sp ON s.SUPP_ID = sp.SUPP_ID
+    LEFT JOIN `orders` o ON sp.PRICING_ID = o.PRICING_ID
+    LEFT JOIN rating r ON o.ORD_ID = r.ORD_ID
+    GROUP BY s.SUPP_ID, s.SUPP_NAME;
+END //
+
+DELIMITER ;
+
+CALL SupplierRatingAndService();
